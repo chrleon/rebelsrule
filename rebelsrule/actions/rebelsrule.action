@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ActionCollection version="2" name="Scripts">
+  <Actions category="Scripts">
+    <text>Rebels Rule</text>
+    <Action name="rebelsrule_toggle">
+      <icon></icon>
+      <text>Rebels Rule</text>
+      <whatsThis></whatsThis>
+      <toolTip>Lock brush strokes to a line through an anchor point</toolTip>
+      <iconText>Ruler</iconText>
+      <activationFlags>1</activationFlags>
+      <activationConditions>0</activationConditions>
+      <shortcut>ctrl+alt+r</shortcut>
+      <isCheckable>true</isCheckable>
+      <statusTip></statusTip>
+    </Action>
+  </Actions>
+</ActionCollection>
