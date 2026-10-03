@@ -141,7 +141,7 @@ class RulerOverlay(QWidget):
             back = QLineF(origin, through)
             back.setLength(-20000)
             full = QLineF(back.p2(), line.p2())
-            for color, width, style in ((QColor(255, 255, 255, 160), 3, Qt.SolidLine),
+            for color, width, style in ((QColor(255, 255, 255, 160), 1, Qt.SolidLine),
                                         (QColor(0, 0, 0, 200), 1, Qt.DashLine)):
                 pen = QPen(color, width, style)
                 pen.setCosmetic(True)
