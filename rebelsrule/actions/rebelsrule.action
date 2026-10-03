@@ -14,5 +14,17 @@
       <isCheckable>true</isCheckable>
       <statusTip></statusTip>
     </Action>
+    <Action name="rebelsrule_reload">
+      <icon></icon>
+      <text>Reload Rebels Rule</text>
+      <whatsThis></whatsThis>
+      <toolTip>Re-import the Rebels Rule code from disk (development)</toolTip>
+      <iconText>Reload ruler</iconText>
+      <activationFlags>0</activationFlags>
+      <activationConditions>0</activationConditions>
+      <shortcut>ctrl+alt+shift+r</shortcut>
+      <isCheckable>false</isCheckable>
+      <statusTip></statusTip>
+    </Action>
   </Actions>
 </ActionCollection>

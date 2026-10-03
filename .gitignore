@@ -1,3 +1,6 @@
 __pycache__/
 *.pyc
 .DS_Store
+
+# Built by build.sh from Manual.src.html
+Manual.html

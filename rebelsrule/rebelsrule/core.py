@@ -18,9 +18,13 @@ behave normally.
 
 The anchor is stored in image coordinates, so it stays pinned to the
 artwork when you pan, zoom or rotate the canvas.
+
+This module is hot-reloadable: extension.py owns the Krita actions and
+swaps in a fresh `RebelsRule` after `importlib.reload`. Anything that
+hooks into Qt must be undone in `shutdown()`.
 """
 
-from krita import Krita, Extension
+from krita import Krita
 
 from PyQt5.QtCore import Qt, QEvent, QObject, QPointF, QLineF, QTimer
 from PyQt5.QtGui import QTabletEvent, QMouseEvent, QPainter, QPen, QColor, QIcon
@@ -28,8 +32,6 @@ from PyQt5.QtWidgets import QApplication, QWidget
 
 import math
 
-
-ACTION_ID = "rebelsrule_toggle"
 
 # Exact QMetaObject class names of Krita's canvas viewport widget.
 _CANVAS_CLASS_NAMES = ("KisOpenGLCanvas2", "KisQPainterCanvas")
@@ -181,12 +183,11 @@ class _Filter(QObject):
             return False
 
 
-class RebelsRuleExtension(Extension):
+class RebelsRule:
+    """The ruler itself. Created (and re-created on reload) by extension.py."""
 
-    def __init__(self, parent):
-        super().__init__(parent)
+    def __init__(self, state=None):
         self.enabled = False
-        self.action = None
         self.filter = _Filter(self)
         self.overlays = {}        # id(canvas widget) -> RulerOverlay
 
@@ -205,6 +206,9 @@ class RebelsRuleExtension(Extension):
         self.timer.setInterval(50)
         self.timer.timeout.connect(self._follow_canvas)
 
+        if state:
+            self.anchor_img = state.get("anchor_img")
+
     def _follow_canvas(self):
         pos = self.anchor_widget_pos()
         key = None if pos is None else (round(pos.x(), 1), round(pos.y(), 1))
@@ -212,17 +216,27 @@ class RebelsRuleExtension(Extension):
             self._last_anchor_pos = key
             self._update_overlays()
 
-    def setup(self):
-        pass
+    # ---- lifecycle (called by extension.py) ----
 
-    def createActions(self, window):
-        self.action = window.createAction(ACTION_ID, "Rebels Rule", "tools/scripts")
-        self.action.setCheckable(True)
-        self.action.toggled.connect(self.set_enabled)
+    def state(self):
+        """What survives a hot reload."""
+        return {"anchor_img": self.anchor_img}
+
+    def shutdown(self):
+        """Undo every hook so the old code is fully gone after a reload."""
+        self.set_enabled(False, quiet=True)
+        for ov in list(self.overlays.values()):
+            try:
+                ov.parent().removeEventFilter(ov)
+                ov.hide()
+                ov.deleteLater()
+            except RuntimeError:
+                pass
+        self.overlays.clear()
 
     # ---- enable / disable ----
 
-    def set_enabled(self, on):
+    def set_enabled(self, on, quiet=False):
         if on == self.enabled:
             return
         self.enabled = on
@@ -230,16 +244,18 @@ class RebelsRuleExtension(Extension):
         if on:
             app.installEventFilter(self.filter)
             self.timer.start()
-            self._message("Ruler on: tap to set anchor, drag to draw along it"
-                          if self.anchor_img is None else "Ruler on")
+            if not quiet:
+                self.message("Ruler on: tap to set anchor, drag to draw along it"
+                              if self.anchor_img is None else "Ruler on")
         else:
             app.removeEventFilter(self.filter)
             self.timer.stop()
             self.phase = IDLE
-            self._message("Ruler off")
+            if not quiet:
+                self.message("Ruler off")
         self._update_overlays()
 
-    def _message(self, text):
+    def message(self, text):
         win = Krita.instance().activeWindow()
         view = win.activeView() if win else None
         if view is not None:

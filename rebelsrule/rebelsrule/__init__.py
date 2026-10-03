@@ -1,4 +1,4 @@
 from krita import Krita
-from .rebelsrule import RebelsRuleExtension
+from .extension import RebelsRuleExtension
 
 Krita.instance().addExtension(RebelsRuleExtension(Krita.instance()))
