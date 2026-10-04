@@ -11,12 +11,11 @@
 <style>
   :root {
     --paper: #e9edf1;      /* cool primed board */
-    --sheet: #f6f8fa;      /* the canvas in the demo */
+    --sheet: #f6f8fa;      /* light text on the accent */
     --ink: #1b2233;        /* indigo ink, text */
     --graphite: #6c7486;   /* guide line, secondary text */
     --ultramarine: #2a3fc4;/* the painted stroke, links */
     --wash: #d5ddf3;       /* faint ultramarine wash */
-    --hand: #b8432f;       /* the wobbly hand path */
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
@@ -26,13 +25,12 @@
       --graphite: #8d95a6;
       --ultramarine: #8193ff;
       --wash: #353c56;
-      --hand: #e07a63;
       color-scheme: dark;
     }
   }
   :root[data-theme="dark"] {
     --paper: #23262d; --sheet: #2c3038; --ink: #e6e9ef; --graphite: #8d95a6;
-    --ultramarine: #8193ff; --wash: #353c56; --hand: #e07a63;
+    --ultramarine: #8193ff; --wash: #353c56;
     color-scheme: dark;
   }
 
@@ -73,57 +71,6 @@
     max-width: 30em;
   }
 
-  .demo {
-    margin: 2rem 0 0;
-    background: var(--sheet);
-    border-radius: 6px;
-    position: relative;
-  }
-  .demo svg { display: block; width: 100%; height: auto; }
-  .demo figcaption {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    flex-wrap: wrap;
-    gap: 0.25rem 1rem;
-    padding: 0.4rem 1rem 0.85rem;
-    font-size: 0.875rem;
-    color: var(--graphite);
-  }
-  .replay {
-    font: inherit;
-    color: var(--ultramarine);
-    background: none;
-    border: 0;
-    padding: 0.25rem 0;
-    cursor: pointer;
-    text-decoration: underline;
-    text-underline-offset: 0.18em;
-    white-space: nowrap;
-  }
-
-  /* demo animation: the guide fades while the stroke is painted */
-  .guide   { stroke: var(--graphite); }
-  .anchor  { stroke: var(--ink); }
-  .hand    { stroke: var(--hand); }
-  .reveal  { stroke: #fff; stroke-dasharray: 600; stroke-dashoffset: 600; }
-  .stroke  { stroke: var(--ultramarine); stroke-dasharray: 420; stroke-dashoffset: 420; }
-  .label   { fill: var(--graphite); font-family: "Archivo", sans-serif; font-size: 24px; }
-  .label.hand-label { fill: var(--hand); }
-
-  .play .reveal { animation: draw 1.9s 0.6s cubic-bezier(.45,.05,.4,1) forwards; }
-  .play .stroke { animation: draw 1.9s 0.6s cubic-bezier(.45,.05,.4,1) forwards; }
-  .play .guide  { animation: fade 3.1s 0.4s ease forwards; }
-  @keyframes draw { to { stroke-dashoffset: 0; } }
-  @keyframes fade {
-    0% { opacity: 1; } 12% { opacity: 0.14; } 80% { opacity: 0.14; } 100% { opacity: 1; }
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .reveal, .stroke { stroke-dashoffset: 0; }
-    .play .reveal, .play .stroke, .play .guide { animation: none; }
-    .replay { display: none; }
-  }
-
   /* ---- sections ---- */
   section { padding: 2.75rem 0 0.5rem; }
   h2 {
@@ -162,7 +109,7 @@
     font-weight: 700;
   }
 
-  .recording { margin: 0.5rem 0 1rem; }
+  .recording { margin: 2rem 0 0; }
   .recording img {
     display: block;
     width: 100%;
@@ -211,29 +158,9 @@
   <h1>Rebels Rule</h1>
   <p class="lede">Straight lines for Krita that still look painted. Tap to set an anchor, move away and paint toward it. The stroke stays on the line to the anchor while your brush keeps its pressure, tilt and texture. Inspired by the excellent ruler tool in Rebelle.</p>
 
-  <figure class="demo" id="demo">
-    <svg viewBox="0 0 800 300" role="img" aria-labelledby="demo-title">
-      <title id="demo-title">A wobbly hand movement toward an anchor point becomes a straight brush stroke along the ruler line.</title>
-      <defs>
-        <filter id="bristle" x="-5%" y="-30%" width="110%" height="160%">
-          <feTurbulence type="fractalNoise" baseFrequency="0.9 0.08" numOctaves="2" seed="4"/>
-          <feDisplacementMap in="SourceGraphic" scale="7"/>
-        </filter>
-        <mask id="hand-reveal" maskUnits="userSpaceOnUse" x="0" y="0" width="800" height="300">
-          <path class="reveal" d="M680 132 C 600 120, 540 200, 480 180 C 420 160, 360 250, 300 222" fill="none" stroke-width="12" stroke-linecap="round"/>
-        </mask>
-      </defs>
-      <line class="guide" x1="-20" y1="278.9" x2="820" y2="58.5" stroke-width="1.5" stroke-dasharray="7 6"/>
-      <path class="hand" d="M680 132 C 600 120, 540 200, 480 180 C 420 160, 360 250, 300 222" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="4 7" mask="url(#hand-reveal)"/>
-      <path class="stroke" d="M680 95.2 L 300 194.9" fill="none" stroke-width="16" stroke-linecap="round" filter="url(#bristle)"/>
-      <circle class="anchor" cx="90" cy="250" r="9" fill="none" stroke-width="2.5"/>
-      <text class="label" x="58" y="292">anchor</text>
-      <text class="label hand-label" x="410" y="240">your hand</text>
-    </svg>
-    <figcaption>
-      <span>The ruler line fades while you paint, so it never hides the stroke.</span>
-      <button class="replay" type="button" id="replay">Play again</button>
-    </figcaption>
+  <figure class="recording">
+    <img src="rebelsrule-stroke.gif" width="648" height="300" alt="Two strokes painted toward the same anchor in Krita, each locked to a straight line through it.">
+    <figcaption>Recorded in Krita 5.3.</figcaption>
   </figure>
 </header>
 
@@ -255,10 +182,6 @@
       <li>Tap the canvas to set an anchor.</li>
       <li>Move the pointer away and paint toward the anchor. The stroke stays on the straight line between where you started and the anchor.</li>
     </ol>
-    <figure class="recording">
-      <img src="rebelsrule-stroke.gif" width="648" height="300" alt="Two strokes painted toward the same anchor in Krita, each locked to a straight line through it.">
-      <figcaption>Recorded in Krita 5.3.</figcaption>
-    </figure>
   </section>
 
   <section aria-labelledby="install">
@@ -277,17 +200,5 @@
   <p class="signoff">Designed by a <a href="https://christianleon.com">human</a>, built by a machine.</p>
 </footer>
 
-<script>
-  (function () {
-    var demo = document.getElementById("demo");
-    function play() {
-      demo.classList.remove("play");
-      void demo.offsetWidth;          // restart the CSS animations
-      demo.classList.add("play");
-    }
-    document.getElementById("replay").addEventListener("click", play);
-    play();
-  })();
-</script>
 </body>
 </html>
