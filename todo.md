@@ -2,13 +2,15 @@
 
 ## Bugs
 
-- [ ] **Rebels Rule: sometimes doesn't activate after switching back to Krita.**
+- [x] **Rebels Rule: sometimes doesn't activate after switching back to Krita.**
   Steps: turn the ruler on, set an anchor, switch to another app, then come
   back to Krita. Sometimes the ruler no longer locks strokes (intermittent).
-  Suspects: Krita/Qt dropping the app-wide event filter or the pen's
-  proximity state on focus loss; the stroke state machine left in `PENDING`
-  or `STROKE` if a release event was lost while Krita was in the background
-  (see `filter_event` in `rebelsrule/rebelsrule/core.py`).
+  Cause: a lost release left the gesture state machine stuck mid-gesture,
+  so later pen events failed the same-device check and passed through.
+  Fixed by resetting on focus loss, on a new press and on a buttonless hover
+  (`_reset_gesture` in `core.py`). Reproduced and verified offline; still
+  to confirm in real use - the Log Viewer shows `reset stuck gesture (...)`
+  whenever it kicks in.
 
 ## Release
 

@@ -86,20 +86,22 @@ class _Snap:
             self.window_pos = QPointF(ev.windowPos())
             self.global_pos = QPointF(ev.screenPos())
 
-    def build(self, pos, ev_type=None):
+    def build(self, pos, ev_type=None, button=None, buttons=None):
         """New event identical to this one but located at widget pos `pos`."""
         t = self.type if ev_type is None else ev_type
+        button = self.button if button is None else button
+        buttons = self.buttons if buttons is None else buttons
         delta = pos - self.pos
         if self.tablet:
             e = QTabletEvent(t, pos, self.global_pos + delta,
                              self.device, self.pointer, self.pressure,
                              self.x_tilt, self.y_tilt, self.tangential,
                              self.rotation, self.z, self.modifiers,
-                             self.unique_id, self.button, self.buttons)
+                             self.unique_id, button, buttons)
         else:
             e = QMouseEvent(t, pos, self.window_pos + delta,
                             self.global_pos + delta,
-                            self.button, self.buttons, self.modifiers)
+                            button, buttons, self.modifiers)
         e.setTimestamp(self.timestamp)
         return e
 
@@ -202,6 +204,7 @@ class RebelsRule:
         self.press = None         # _Snap of the buffered press
         self.origin = None        # QPointF widget coords (line origin)
         self.direction = None     # unit vector (dx, dy)
+        self.last_sent = None     # (_Snap, pos) of the last event sent mid-stroke
         self.sending = False
 
         # Keep the anchor marker glued to the art while panning/zooming/rotating.
@@ -333,10 +336,37 @@ class RebelsRule:
         finally:
             self.sending = False
 
+    def _reset_gesture(self, why):
+        """Drop a gesture whose release we never saw (e.g. Krita lost focus
+        mid-stroke). Without this the state machine stays stuck: later pen
+        events fail the source check and pass through unconstrained."""
+        if self.phase == IDLE:
+            return
+        if self.phase == STROKE and self.last_sent is not None and self.widget is not None:
+            # Finish Krita's stroke so it doesn't keep painting on the next move.
+            snap, pos = self.last_sent
+            release = QEvent.TabletRelease if snap.tablet else QEvent.MouseButtonRelease
+            try:
+                self._send(self.widget, snap.build(pos, release, Qt.LeftButton, Qt.NoButton))
+            except RuntimeError:  # canvas widget already gone
+                pass
+        print(f"[rebelsrule] reset stuck gesture ({why})")
+        self.phase = IDLE
+        self.press = None
+        self.widget = None
+        self.last_sent = None
+
     def filter_event(self, obj, ev):
         if self.sending or not self.enabled:
             return False
         t = ev.type()
+
+        if t in (QEvent.ApplicationDeactivate, QEvent.WindowDeactivate):
+            self._reset_gesture("focus lost")
+            return False
+        if t == QEvent.ApplicationStateChange and ev.applicationState() != Qt.ApplicationActive:
+            self._reset_gesture("app inactive")
+            return False
 
         if t == QEvent.KeyPress and ev.key() == Qt.Key_Escape \
                 and self.anchor_img is not None and self.phase == IDLE:
@@ -349,6 +379,16 @@ class RebelsRule:
             return False
         if not _is_canvas(obj):
             return False
+
+        synthesized = not tablet and ev.source() != Qt.MouseEventNotSynthesized
+        if self.phase != IDLE and not synthesized:
+            if t in (QEvent.TabletPress, QEvent.MouseButtonPress):
+                # A new press while a gesture is open: its release was lost.
+                self._reset_gesture("new press")
+            elif t in (QEvent.TabletMove, QEvent.MouseMove) and ev.buttons() == Qt.NoButton \
+                    and tablet == self.source_tablet:
+                # The same device hovering with nothing pressed: the release was lost.
+                self._reset_gesture("hover")
 
         # While a tablet gesture is in flight, swallow Qt's mouse fallbacks.
         if not tablet and self.phase != IDLE and self.source_tablet:
@@ -427,9 +467,12 @@ class RebelsRule:
 
         if self.phase == STROKE:
             snap = _Snap(ev, tablet)
-            self._send(obj, snap.build(self._project(pos)))
+            proj = self._project(pos)
+            self._send(obj, snap.build(proj))
+            self.last_sent = (snap, proj)
             if is_release:
                 self.phase = IDLE
+                self.last_sent = None
                 self._update_overlays(obj, pos)
             elif t in (QEvent.TabletMove, QEvent.MouseMove):
                 self._overlay_for(obj).update()
