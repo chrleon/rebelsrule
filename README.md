@@ -38,4 +38,4 @@ generated from `Manual.src.html`.
 
 ---
 
-Designed by a human, built by a machine.
+Designed by a [human](https://christianleon.com), built by a machine.
