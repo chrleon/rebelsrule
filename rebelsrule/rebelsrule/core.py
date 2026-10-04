@@ -2,7 +2,7 @@
 Rebels Rule — a Rebelle-style ruler for Krita.
 
 Toggle with Tools > Scripts > Rebels Rule (default Ctrl+Alt+R). While on:
-  - Tap (press + release without moving) on the canvas to drop an anchor.
+  - Tap (press + release without moving) on the canvas to set an anchor.
   - Press and drag to paint: the stroke is locked to the infinite line that
     runs through the anchor and the point where the stroke started.
   - Strokes with a modifier held (Ctrl, Shift, Alt, Space-pan...) and any
@@ -39,6 +39,7 @@ _CANVAS_CLASS_NAMES = ("KisOpenGLCanvas2", "KisQPainterCanvas")
 TAP_PX = 4.0          # movement below this between press/release = a tap
 SAME_POINT_PX = 6.0   # stroke starting this close to the anchor takes its
                       # direction from the first drag movement instead
+PAINTING_GUIDE_OPACITY = 0.13   # ruler line opacity while a stroke is painting
 
 _TABLET_TYPES = (QEvent.TabletPress, QEvent.TabletMove, QEvent.TabletRelease)
 _MOUSE_TYPES = (QEvent.MouseButtonPress, QEvent.MouseMove,
@@ -143,12 +144,15 @@ class RulerOverlay(QWidget):
             back = QLineF(origin, through)
             back.setLength(-20000)
             full = QLineF(back.p2(), line.p2())
+            # Fade the line while painting so it doesn't hide the stroke.
+            p.setOpacity(PAINTING_GUIDE_OPACITY if self.ext.phase == STROKE else 1.0)
             for color, width, style in ((QColor(255, 255, 255, 160), 1, Qt.SolidLine),
                                         (QColor(0, 0, 0, 200), 1, Qt.DashLine)):
                 pen = QPen(color, width, style)
                 pen.setCosmetic(True)
                 p.setPen(pen)
                 p.drawLine(full)
+            p.setOpacity(1.0)
 
         # Anchor: white-haloed black crosshair ring.
         r = 6.0

@@ -4,3 +4,10 @@ __pycache__/
 
 # Built by build.sh from Manual.src.html
 Manual.html
+
+# Dev-mode marker and log, written by build.sh / the plugins
+.dev
+.dev.log
+
+# Release zips from ./build.sh --zip
+dist/

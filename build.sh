@@ -1,20 +1,29 @@
 #!/usr/bin/env bash
 # Install plugins from this repo into Krita's resource folder.
 #
-#   ./build.sh                    copy every plugin
-#   ./build.sh rebelsrule         copy only the given folder(s)
-#   ./build.sh --link [folders]   symlink instead of copy (development):
+#   ./build.sh                    link every plugin (development, the default):
 #                                 edits in the repo are live in Krita, and
 #                                 plugins that support it reload themselves
 #                                 on save - no need to re-run this script
+#   ./build.sh rebelsrule         link only the given folder(s)
+#   ./build.sh --copy [folders]   copy instead of link, e.g. for a stable
+#                                 install that doesn't follow repo edits
+#   ./build.sh --zip [folders]    build release zips in dist/ for Krita's
+#                                 Tools > Scripts > Import Python Plugin
+#                                 from File... (no dev files included)
 #
 # Each plugin lives in its own folder (folder name is free-form):
 #   <folder>/<id>.desktop      plugin manifest (X-KDE-Library=<id>)
 #   <folder>/<id>/             python package
-#   <folder>/actions/*.action  optional shortcut definitions
+#   <folder>/actions/*.action  optional shortcut definitions; files ending in
+#                              -dev.action are only installed when linking
 #   <folder>/<id>/Manual.src.html
 #                              optional manual source; built into Manual.html
 #                              with images embedded (see build_manual below)
+#
+# Linking also drops a `.dev` marker in each package so plugins can turn on
+# dev-only features (reload action, auto-reload, .dev.log). --copy leaves the
+# marker, logs, manual sources and -dev.action files out.
 #
 # Restart Krita after the first install, and whenever a .desktop or
 # .action file changes; Krita only reads those at startup.
@@ -25,11 +34,13 @@ KRITA="${KRITA_RESOURCES:-$HOME/Library/Application Support/krita}"
 PYKRITA="$KRITA/pykrita"
 ACTIONS="$KRITA/actions"
 
-link=0
-if [ "${1:-}" = "--link" ]; then
-  link=1
-  shift
-fi
+link=1
+zip=0
+case "${1:-}" in
+  --copy) link=0; shift ;;
+  --zip)  link=0; zip=1; shift ;;
+  --link) shift ;;   # the default; still accepted
+esac
 
 if [ $# -gt 0 ]; then
   folders=("$@")
@@ -40,8 +51,10 @@ else
   done
 fi
 
-mkdir -p "$PYKRITA" "$ACTIONS"
 reload_hints=()
+
+
+mkdir -p "$PYKRITA" "$ACTIONS"
 
 # Krita gives a plugin's manual to Qt as plain text with no base folder, so
 # relative <img src="x.png"> paths don't resolve. Turn every relative image
@@ -74,15 +87,46 @@ PY
 # Removing first matters: copying into a symlink would write into the repo.
 install_path() {
   local src="$1" dest="$2"
+  if [ "$link" = 0 ] && [ -d "$src" ] && [ -L "$dest" ]; then
+    echo "note: $(basename "$dest") was linked; it's now a copy, so edits and" >&2
+    echo "      auto-reload won't reach Krita. Run ./build.sh without --copy to develop." >&2
+  fi
   rm -rf "$dest"
   if [ "$link" = 1 ]; then
     ln -s "$src" "$dest"
   elif [ -d "$src" ]; then
-    rsync -a --exclude __pycache__ "$src/" "$dest/"
+    rsync -a --exclude __pycache__ --exclude .dev --exclude .dev.log \
+      --exclude Manual.src.html "$src/" "$dest/"
   else
     cp "$src" "$dest"
   fi
 }
+
+# Release zip: the layout Krita's plugin importer expects -
+# <id>.desktop, <id>/ (with __init__.py) and <id>.action at the top level.
+if [ "$zip" = 1 ]; then
+  mkdir -p "$REPO/dist"
+  for folder in "${folders[@]}"; do
+    src="$REPO/$folder"
+    for desktop in "$src"/*.desktop; do
+      [ -f "$desktop" ] || continue
+      id="$(basename "$desktop" .desktop)"
+      [ -d "$src/$id" ] || continue
+      build_manual "$src/$id"
+      stage="$(mktemp -d)"
+      cp "$desktop" "$stage/"
+      rsync -a --exclude __pycache__ --exclude .dev --exclude .dev.log \
+        --exclude Manual.src.html --exclude '*.svg' "$src/$id/" "$stage/$id/"
+      [ -f "$src/actions/$id.action" ] && cp "$src/actions/$id.action" "$stage/"
+      out="$REPO/dist/$id.zip"
+      rm -f "$out"
+      (cd "$stage" && zip -qr "$out" .)
+      rm -rf "$stage"
+      echo "zipped: $folder -> dist/$id.zip"
+    done
+  done
+  exit 0
+fi
 
 for folder in "${folders[@]}"; do
   src="$REPO/$folder"
@@ -95,6 +139,11 @@ for folder in "${folders[@]}"; do
       continue
     fi
     build_manual "$src/$id"
+    if [ "$link" = 1 ]; then
+      touch "$src/$id/.dev"
+    else
+      rm -f "$src/$id/.dev"   # also turns dev mode off for an old link
+    fi
     install_path "$desktop" "$PYKRITA/$id.desktop"
     install_path "$src/$id" "$PYKRITA/$id"
     found=1
@@ -106,6 +155,10 @@ for folder in "${folders[@]}"; do
   fi
   for action in "$src"/actions/*.action; do
     [ -f "$action" ] || continue
+    if [ "$link" = 0 ] && [[ "$action" == *-dev.action ]]; then
+      rm -f "$ACTIONS/$(basename "$action")"
+      continue
+    fi
     install_path "$action" "$ACTIONS/$(basename "$action")"
     # Collect "<text> (<shortcut>)" for any action whose name mentions reload.
     if [ "$link" = 1 ]; then

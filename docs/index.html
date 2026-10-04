@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rebels Rule for Krita</title>
+<meta name="description" content="A ruler for Krita that keeps your brush: tap to set an anchor, then paint toward it in a straight line with pressure, tilt and texture intact.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:ital,wdth,wght@0,62..125,300..900;1,62..125,300..900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #e9edf1;      /* cool primed board */
+    --sheet: #f6f8fa;      /* the canvas in the demo */
+    --ink: #1b2233;        /* indigo ink, text */
+    --graphite: #6c7486;   /* guide line, secondary text */
+    --ultramarine: #2a3fc4;/* the painted stroke, links */
+    --wash: #d5ddf3;       /* faint ultramarine wash */
+    --hand: #b8432f;       /* the wobbly hand path */
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #23262d;
+      --sheet: #2c3038;
+      --ink: #e6e9ef;
+      --graphite: #8d95a6;
+      --ultramarine: #8193ff;
+      --wash: #353c56;
+      --hand: #e07a63;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #23262d; --sheet: #2c3038; --ink: #e6e9ef; --graphite: #8d95a6;
+    --ultramarine: #8193ff; --wash: #353c56; --hand: #e07a63;
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Archivo", system-ui, sans-serif;
+    font-variation-settings: "wdth" 100;
+    font-size: 1.0625rem;
+    line-height: 1.55;
+  }
+  a { color: var(--ultramarine); text-underline-offset: 0.18em; }
+  a:focus-visible, button:focus-visible {
+    outline: 2px solid var(--ultramarine);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+
+  .wrap { max-width: 44rem; margin: 0 auto; padding-inline: 16px; }
+
+  /* ---- hero ---- */
+  header { padding: 3.5rem 0 1.5rem; }
+  h1 {
+    margin: 0;
+    font-size: clamp(2.75rem, 11vw, 5.5rem);
+    line-height: 0.92;
+    font-weight: 800;
+    font-variation-settings: "wdth" 125;
+    letter-spacing: -0.01em;
+  }
+  .lede {
+    margin: 1.25rem 0 0;
+    font-size: clamp(1.2rem, 3.6vw, 1.45rem);
+    line-height: 1.4;
+    max-width: 30em;
+  }
+
+  .demo {
+    margin: 2rem 0 0;
+    background: var(--sheet);
+    border-radius: 6px;
+    position: relative;
+  }
+  .demo svg { display: block; width: 100%; height: auto; }
+  .demo figcaption {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 0.25rem 1rem;
+    padding: 0.4rem 1rem 0.85rem;
+    font-size: 0.875rem;
+    color: var(--graphite);
+  }
+  .replay {
+    font: inherit;
+    color: var(--ultramarine);
+    background: none;
+    border: 0;
+    padding: 0.25rem 0;
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 0.18em;
+    white-space: nowrap;
+  }
+
+  /* demo animation: the guide fades while the stroke is painted */
+  .guide   { stroke: var(--graphite); }
+  .anchor  { stroke: var(--ink); }
+  .hand    { stroke: var(--hand); }
+  .reveal  { stroke: #fff; stroke-dasharray: 600; stroke-dashoffset: 600; }
+  .stroke  { stroke: var(--ultramarine); stroke-dasharray: 420; stroke-dashoffset: 420; }
+  .label   { fill: var(--graphite); font-family: "Archivo", sans-serif; font-size: 24px; }
+  .label.hand-label { fill: var(--hand); }
+
+  .play .reveal { animation: draw 1.9s 0.6s cubic-bezier(.45,.05,.4,1) forwards; }
+  .play .stroke { animation: draw 1.9s 0.6s cubic-bezier(.45,.05,.4,1) forwards; }
+  .play .guide  { animation: fade 3.1s 0.4s ease forwards; }
+  @keyframes draw { to { stroke-dashoffset: 0; } }
+  @keyframes fade {
+    0% { opacity: 1; } 12% { opacity: 0.14; } 80% { opacity: 0.14; } 100% { opacity: 1; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .reveal, .stroke { stroke-dashoffset: 0; }
+    .play .reveal, .play .stroke, .play .guide { animation: none; }
+    .replay { display: none; }
+  }
+
+  /* ---- sections ---- */
+  section { padding: 2.75rem 0 0.5rem; }
+  h2 {
+    margin: 0 0 0.9rem;
+    font-size: 1.6rem;
+    line-height: 1.15;
+    font-weight: 750;
+    font-variation-settings: "wdth" 118;
+  }
+  p { margin: 0 0 1rem; max-width: 36em; }
+
+  .points { margin: 0; padding: 0; list-style: none; }
+  .points li { padding: 0.9rem 0; border-top: 1px solid var(--wash); max-width: 36em; }
+  .points li:last-child { border-bottom: 1px solid var(--wash); }
+  .points b { display: block; font-size: 1.1rem; margin-bottom: 0.15rem; }
+
+  ol.steps { margin: 0 0 1rem; padding: 0; list-style: none; counter-reset: step; }
+  ol.steps li {
+    counter-increment: step;
+    position: relative;
+    padding: 0 0 1rem 2.6rem;
+    max-width: 36em;
+  }
+  ol.steps li::before {
+    content: counter(step);
+    position: absolute;
+    left: 0;
+    top: -0.1rem;
+    width: 1.8rem;
+    height: 1.8rem;
+    border-radius: 50%;
+    border: 1.5px solid var(--ink);
+    display: grid;
+    place-items: center;
+    font-size: 0.9rem;
+    font-weight: 700;
+  }
+
+  kbd {
+    font-family: inherit;
+    font-size: 0.9em;
+    font-weight: 650;
+    padding: 0.05em 0.4em;
+    border-radius: 4px;
+    background: var(--wash);
+    white-space: nowrap;
+  }
+  .path { font-weight: 650; }
+
+  .download {
+    display: inline-block;
+    margin: 0.25rem 0 1.5rem;
+    padding: 0.8rem 1.3rem;
+    border-radius: 6px;
+    background: var(--ultramarine);
+    color: var(--sheet);
+    font-weight: 700;
+    text-decoration: none;
+  }
+  .download:hover { filter: brightness(1.08); }
+  .note { font-size: 0.925rem; color: var(--graphite); }
+
+  footer { padding: 3rem 0 3.5rem; }
+  .signoff {
+    margin: 2rem 0 0;
+    font-size: 1.25rem;
+    font-style: italic;
+    font-variation-settings: "wdth" 112;
+  }
+</style>
+</head>
+<body>
+
+<header class="wrap">
+  <h1>Rebels Rule</h1>
+  <p class="lede">Straight lines for Krita that still look painted. Tap to set an anchor, move away and paint toward it. The stroke stays on the line to the anchor while your brush keeps its pressure, tilt and texture. Inspired by the excellent ruler tool in Rebelle.</p>
+
+  <figure class="demo" id="demo">
+    <svg viewBox="0 0 800 300" role="img" aria-labelledby="demo-title">
+      <title id="demo-title">A wobbly hand movement toward an anchor point becomes a straight brush stroke along the ruler line.</title>
+      <defs>
+        <filter id="bristle" x="-5%" y="-30%" width="110%" height="160%">
+          <feTurbulence type="fractalNoise" baseFrequency="0.9 0.08" numOctaves="2" seed="4"/>
+          <feDisplacementMap in="SourceGraphic" scale="7"/>
+        </filter>
+        <mask id="hand-reveal" maskUnits="userSpaceOnUse" x="0" y="0" width="800" height="300">
+          <path class="reveal" d="M680 132 C 600 120, 540 200, 480 180 C 420 160, 360 250, 300 222" fill="none" stroke-width="12" stroke-linecap="round"/>
+        </mask>
+      </defs>
+      <line class="guide" x1="-20" y1="278.9" x2="820" y2="58.5" stroke-width="1.5" stroke-dasharray="7 6"/>
+      <path class="hand" d="M680 132 C 600 120, 540 200, 480 180 C 420 160, 360 250, 300 222" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="4 7" mask="url(#hand-reveal)"/>
+      <path class="stroke" d="M680 95.2 L 300 194.9" fill="none" stroke-width="16" stroke-linecap="round" filter="url(#bristle)"/>
+      <circle class="anchor" cx="90" cy="250" r="9" fill="none" stroke-width="2.5"/>
+      <text class="label" x="58" y="292">anchor</text>
+      <text class="label hand-label" x="410" y="240">your hand</text>
+    </svg>
+    <figcaption>
+      <span>The ruler line fades while you paint, so it never hides the stroke.</span>
+      <button class="replay" type="button" id="replay">Play again</button>
+    </figcaption>
+  </figure>
+</header>
+
+<main class="wrap">
+  <section aria-labelledby="why">
+    <h2 id="why">Why use it</h2>
+    <ul class="points">
+      <li><b>It's your brush, not a line tool</b>Pressure, tilt, rotation and texture work as usual. A ruled line looks like every other stroke in the painting.</li>
+      <li><b>Nothing to set up or clean away</b>No assistant to place, snap or delete afterwards. One tap sets the anchor, the next tap moves it.</li>
+      <li><b>Many lines from one point</b>The anchor stays put, so you can paint speed lines, rays or perspective lines that all meet at one spot.</li>
+      <li><b>Stays out of the way</b>Hold Ctrl, Shift, Alt or Space and Krita behaves as normal. Press <kbd>Esc</kbd> to clear the anchor, or turn the ruler off.</li>
+    </ul>
+  </section>
+
+  <section aria-labelledby="how">
+    <h2 id="how">How it works</h2>
+    <ol class="steps">
+      <li>Press <kbd>Ctrl+Alt+R</kbd> or choose <span class="path">Tools ▸ Scripts ▸ Rebels Rule</span> to turn the ruler on.</li>
+      <li>Tap the canvas to set an anchor.</li>
+      <li>Move the pointer away and paint toward the anchor. The stroke stays on the straight line between where you started and the anchor.</li>
+    </ol>
+  </section>
+
+  <section aria-labelledby="install">
+    <h2 id="install">Install</h2>
+    <a class="download" href="https://github.com/chrleon/kritaplugins/releases/latest/download/rebelsrule.zip">Download rebelsrule.zip</a>
+    <ol class="steps">
+      <li>In Krita, choose <span class="path">Tools ▸ Scripts ▸ Import Python Plugin from File…</span> and pick the zip.</li>
+      <li>Restart Krita.</li>
+      <li>Open <span class="path">Settings ▸ Configure Krita ▸ Python Plugin Manager</span>, tick <b>Rebels Rule</b> and restart once more.</li>
+    </ol>
+    <p class="note">Tested with Krita 5.3 on macOS. The source is on <a href="https://github.com/chrleon/kritaplugins">GitHub</a>.</p>
+  </section>
+</main>
+
+<footer class="wrap">
+  <p class="signoff">Designed by a human, built by a machine.</p>
+</footer>
+
+<script>
+  (function () {
+    var demo = document.getElementById("demo");
+    function play() {
+      demo.classList.remove("play");
+      void demo.offsetWidth;          // restart the CSS animations
+      demo.classList.add("play");
+    }
+    document.getElementById("replay").addEventListener("click", play);
+    play();
+  })();
+</script>
+</body>
+</html>

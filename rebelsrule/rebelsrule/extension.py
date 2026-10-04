@@ -3,15 +3,16 @@ Permanent shell for Rebels Rule.
 
 Krita only accepts actions (menu entries + shortcuts) at startup, so this
 module owns them and never reloads. The actual ruler lives in core.py and
-can be swapped out at runtime with "Reload Rebels Rule" (Ctrl+Alt+Shift+R):
-the old controller is shut down, every `rebelsrule.*` module except this
-one is re-imported from disk, and a fresh controller takes over with the
-same on/off state and anchor.
+can be swapped out at runtime: the old controller is shut down, every
+`rebelsrule.*` module except this one is re-imported from disk, and a
+fresh controller takes over with the same on/off state and anchor.
 
-When the plugin is installed with `./build.sh --link` (the package folder
-is a symlink into the repo), it also watches its own .py files and
-reloads automatically a moment after you save. Copied installs don't
-watch.
+Dev mode only (a `.dev` marker file next to this module, written by
+`./build.sh` and left out by `./build.sh --copy`):
+  - "Reload Rebels Rule" (Ctrl+Alt+Shift+R) in Tools > Scripts
+  - automatic reload a moment after any .py file here is saved
+  - a log of startup and reloads in `.dev.log` next to this module
+Released (copied) installs have none of this.
 
 Changes to this file, __init__.py, the .desktop or .action files still
 need a Krita restart.
@@ -20,6 +21,8 @@ need a Krita restart.
 from krita import Extension
 
 from PyQt5.QtCore import QFileSystemWatcher, QTimer
+
+from datetime import datetime
 
 import importlib
 import os
@@ -33,8 +36,18 @@ TOGGLE_ID = "rebelsrule_toggle"
 RELOAD_ID = "rebelsrule_reload"
 
 _PACKAGE = __name__.rpartition(".")[0]
-_PKG_DIR = os.path.dirname(os.path.abspath(__file__))
-_DEV_MODE = os.path.islink(_PKG_DIR)   # installed via ./build.sh --link
+_SRC_DIR = os.path.dirname(os.path.realpath(__file__))
+_DEV_MODE = os.path.exists(os.path.join(_SRC_DIR, ".dev"))
+
+
+def _log(text):
+    print(f"[rebelsrule] {text}")
+    if _DEV_MODE:
+        try:
+            with open(os.path.join(_SRC_DIR, ".dev.log"), "a", encoding="utf-8") as f:
+                f.write(f"{datetime.now():%H:%M:%S} {text}\n")
+        except OSError:
+            pass
 
 
 class RebelsRuleExtension(Extension):
@@ -56,13 +69,14 @@ class RebelsRuleExtension(Extension):
         self.toggle_action.setChecked(self.ctrl.enabled)
         self.toggle_action.toggled.connect(lambda on: self.ctrl.set_enabled(on))
 
-        reload_action = window.createAction(RELOAD_ID, "Reload Rebels Rule", "tools/scripts")
-        reload_action.triggered.connect(self.reload)
+        if _DEV_MODE:
+            reload_action = window.createAction(RELOAD_ID, "Reload Rebels Rule", "tools/scripts")
+            reload_action.triggered.connect(lambda *_: self.reload(reason="menu"))
 
     # ---- auto-reload on save (dev mode only) ----
 
     def _start_watching(self):
-        self.src_dir = os.path.realpath(_PKG_DIR)
+        self.src_dir = _SRC_DIR
         self.snapshot = self._snapshot()
         self.watcher = QFileSystemWatcher()
         # Editors often save by replacing the file, which drops it from the
@@ -74,6 +88,7 @@ class RebelsRuleExtension(Extension):
         self.watcher.fileChanged.connect(lambda *_: self.debounce.start())
         self.watcher.directoryChanged.connect(lambda *_: self.debounce.start())
         self._rewatch()
+        _log(f"dev mode: watching {self.src_dir} ({len(self._py_files())} .py files)")
 
     def _py_files(self):
         try:
@@ -98,6 +113,7 @@ class RebelsRuleExtension(Extension):
         self.watcher.addPaths([self.src_dir] + self._py_files())
 
     def _on_settled(self):
+        _log("change detected")
         self._rewatch()
         snap = self._snapshot()
         if snap == self.snapshot:   # e.g. Python writing __pycache__
@@ -119,11 +135,11 @@ class RebelsRuleExtension(Extension):
                 importlib.reload(sys.modules[name])
             new = sys.modules[_PACKAGE + ".core"].RebelsRule(state)
         except Exception:
-            traceback.print_exc()
-            print("[rebelsrule] reload failed, keeping the previous version")
+            _log("reload failed, keeping the previous version:\n" + traceback.format_exc())
             old.set_enabled(was_enabled, quiet=True)
             old.message("Rebels Rule: reload failed (see Log Viewer)")
             return
         self.ctrl = new
+        _log(f"reloaded ({reason or 'manual'})")
         new.set_enabled(was_enabled, quiet=True)
         new.message("Rebels Rule reloaded" + (f" ({reason})" if reason else ""))

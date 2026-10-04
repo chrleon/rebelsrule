@@ -5,4 +5,4 @@ X-KDE-Library=rebelsrule
 X-Python-2-Compatible=false
 Name=Rebels Rule
 X-Krita-Manual=Manual.html
-Comment=Rebelle-style ruler: tap to set an anchor, then drag to paint a stroke locked to the line through the anchor.
+Comment=Rebelle-style ruler: tap to set an anchor, then paint toward it in a straight line.
