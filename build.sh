@@ -75,6 +75,8 @@ def embed(m):
     data = base64.b64encode(open(path, "rb").read()).decode()
     return f'{m.group(1)}data:{mime};base64,{data}{m.group(3)}'
 
+# Drop comments first so commented-out images aren't embedded for nothing.
+src = re.sub(r"<!--.*?-->\n?", "", src, flags=re.S)
 out = re.sub(r'(<img\b[^>]*?\bsrc=")([^"]+)(")', embed, src)
 # The note goes at the end: Krita lets Qt guess whether the manual is HTML,
 # and Qt only says yes if the file starts with a real tag, not a comment.

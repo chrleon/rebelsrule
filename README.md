@@ -5,7 +5,7 @@ anchor, move the pointer away and paint toward it: the stroke stays on the
 straight line between where you started and the anchor, with pressure, tilt
 and texture intact. Inspired by the excellent ruler tool in Rebelle.
 
-![An anchor, a wobbly hand movement toward it and the straight stroke it paints](rebelsrule/rebelsrule/ruler.png)
+![Two strokes painted toward the same anchor in Krita, each locked to a straight line](docs/rebelsrule-stroke.gif)
 
 ## Use it
 
