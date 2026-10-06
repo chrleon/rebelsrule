@@ -57,9 +57,10 @@ Krita's Python Plugin Manager can only turn plugins off, so removing these files
 ## Develop
 
 ```bash
-./build.sh            # link plugins into Krita, with hot reload on save
-./build.sh --copy     # install a plain copy, no dev tools
-./build.sh --zip      # build release zips in dist/
+./build.sh              # link plugins into Krita, with hot reload on save
+./build.sh --copy       # install a plain copy, no dev tools
+./build.sh --zip        # build release zips in dist/
+./build.sh --uninstall  # remove the plugin from Krita, e.g. before testing a zip import
 ```
 
 Linked plugins reload when you save a `.py` file, and get a

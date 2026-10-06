@@ -8,6 +8,10 @@
 #   ./build.sh rebelsrule         link only the given folder(s)
 #   ./build.sh --copy [folders]   copy instead of link, e.g. for a stable
 #                                 install that doesn't follow repo edits
+#   ./build.sh --uninstall [folders]
+#                                 remove the plugins from Krita, whether
+#                                 linked, copied or imported from a zip
+#                                 (e.g. before testing a zip import)
 #   ./build.sh --zip [folders]    build release zips in dist/ for Krita's
 #                                 Tools > Scripts > Import Python Plugin
 #                                 from File... (no dev files included)
@@ -36,9 +40,11 @@ ACTIONS="$KRITA/actions"
 
 link=1
 zip=0
+uninstall=0
 case "${1:-}" in
   --copy) link=0; shift ;;
   --zip)  link=0; zip=1; shift ;;
+  --uninstall) uninstall=1; shift ;;
   --link) shift ;;   # the default; still accepted
 esac
 
@@ -52,6 +58,32 @@ else
 fi
 
 reload_hints=()
+
+# Uninstall: remove each plugin's manifest, package and .action files from
+# Krita, however they got there. `rm -rf` on a path without a trailing
+# slash removes a link itself, never the repo folder it points to.
+if [ "$uninstall" = 1 ]; then
+  pgrep -xq krita && echo "note: Krita is running; quit it so it doesn't keep the old plugin loaded." >&2
+  for folder in "${folders[@]}"; do
+    src="$REPO/$folder"
+    for desktop in "$src"/*.desktop; do
+      [ -f "$desktop" ] || continue
+      id="$(basename "$desktop" .desktop)"
+      removed=0
+      for path in "$PYKRITA/$id" "$PYKRITA/$id.desktop"; do
+        if [ -e "$path" ] || [ -L "$path" ]; then rm -rf "$path"; removed=1; fi
+      done
+      for action in "$src"/actions/*.action; do
+        [ -f "$action" ] || continue
+        path="$ACTIONS/$(basename "$action")"
+        if [ -e "$path" ] || [ -L "$path" ]; then rm -f "$path"; removed=1; fi
+      done
+      if [ "$removed" = 1 ]; then echo "uninstalled: $folder ($id)"; else echo "not installed: $folder ($id)"; fi
+    done
+  done
+  echo "Run ./build.sh to install the dev version again."
+  exit 0
+fi
 
 
 mkdir -p "$PYKRITA" "$ACTIONS"
