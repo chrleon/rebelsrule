@@ -119,6 +119,29 @@
   }
   .recording figcaption { margin-top: 0.5rem; font-size: 0.875rem; color: var(--graphite); }
 
+  h3 {
+    margin: 0 0 0.75rem;
+    font-size: 1.15rem;
+    line-height: 1.25;
+    font-weight: 700;
+    font-variation-settings: "wdth" 110;
+  }
+  .callout {
+    margin: 0 0 2rem;
+    padding: 1rem 1rem 0.5rem;
+    border-radius: 6px;
+    background: var(--wash);
+    max-width: 38em;
+  }
+  .callout .download { display: table; margin: 0.6rem 0 0.25rem; }
+  .callout .why { margin: 0 0 0.75rem; font-size: 0.925rem; color: var(--graphite); }
+  .callout kbd { background: var(--paper); }
+
+  /* bulleted sub-item inside a numbered step */
+  .steps .sub { margin: 0.4rem 0 0; padding-left: 1.1rem; list-style: disc; }
+  .steps .sub li { counter-increment: none; padding: 0; }
+  .steps .sub li::before { content: none; }
+
   kbd {
     font-family: inherit;
     font-size: 0.9em;
@@ -130,9 +153,37 @@
   }
   .path { font-weight: 650; }
 
+  .address {
+    display: flex;
+    align-items: stretch;
+    gap: 0.5rem;
+    margin: 0.6rem 0 0.75rem;
+  }
+  .address code {
+    flex: 1;
+    min-width: 0;
+    padding: 0.55rem 0.7rem;
+    border-radius: 6px;
+    background: var(--wash);
+    font-size: 0.85rem;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+    user-select: all;
+  }
+  .copy {
+    font: inherit;
+    font-size: 0.9rem;
+    font-weight: 650;
+    padding: 0 0.9rem;
+    border-radius: 6px;
+    border: 1.5px solid var(--ultramarine);
+    background: none;
+    color: var(--ultramarine);
+    cursor: pointer;
+  }
   .download {
     display: inline-block;
-    margin: 0.25rem 0 1.5rem;
+    margin: 0.75rem 0 0.5rem;
     padding: 0.8rem 1.3rem;
     border-radius: 6px;
     background: var(--ultramarine);
@@ -156,7 +207,7 @@
 
 <header class="wrap">
   <h1>Rebels Rule</h1>
-  <p class="lede">Straight lines for Krita that still look painted. Tap to set an anchor, move away and paint toward it. The stroke stays on the line to the anchor while your brush keeps its pressure, tilt and texture. Inspired by the excellent ruler tool in Rebelle.</p>
+  <p class="lede">Straight lines for Krita that still look painted. Tap to set an anchor, move away and paint toward it. The stroke stays on the line to the anchor while your brush keeps its pressure, tilt and texture. Inspired by the excellent ruler tool in <a href="https://www.escapemotions.com/products/rebelle/about">Rebelle</a>.</p>
 
   <figure class="recording">
     <img src="rebelsrule-stroke.gif" width="648" height="300" alt="Two strokes painted toward the same anchor in Krita, each locked to a straight line through it.">
@@ -168,7 +219,7 @@
   <section aria-labelledby="why">
     <h2 id="why">Why use it</h2>
     <ul class="points">
-      <li><b>It's your brush, not a line tool</b>Pressure, tilt, rotation and texture work as usual. A ruled line looks like every other stroke in the painting.</li>
+      <li><b>Works with any brush</b>Pressure, tilt, rotation and texture work as usual. A ruled line looks like every other stroke in the painting.</li>
       <li><b>Nothing to set up or clean away</b>No assistant to place, snap or delete afterwards. One tap sets the anchor, the next tap moves it.</li>
       <li><b>Many lines from one point</b>The anchor stays put, so you can paint speed lines, rays or perspective lines that all meet at one spot.</li>
       <li><b>Stays out of the way</b>Hold Ctrl, Shift, Alt or Space and Krita behaves as normal. Press <kbd>Esc</kbd> to clear the anchor, or turn the ruler off.</li>
@@ -186,13 +237,54 @@
 
   <section aria-labelledby="install">
     <h2 id="install">Install</h2>
-    <a class="download" href="https://github.com/chrleon/rebelsrule/releases/latest/download/rebelsrule.zip">Download rebelsrule.zip</a>
+    <div class="callout">
+      <h3>Mac users? Download the zip file.</h3>
+      <ol class="steps">
+        <li>
+          Download the plugin.
+          <a class="download" href="https://github.com/chrleon/rebelsrule/releases/latest/download/rebelsrule.zip">Download rebelsrule.zip</a>
+        </li>
+        <li>In Krita, choose <span class="path">Tools ▸ Scripts ▸ Import Python Plugin from File…</span> and pick the zip.</li>
+        <li>
+          When Krita asks <b>Enable plugins now?</b>, choose <b>Yes</b>.
+          <ul class="sub">
+            <li>If you chose <b>No</b>, open <span class="path">Settings ▸ Configure Krita ▸ Python Plugin Manager</span>, tick <b>Rebels Rule</b> and restart Krita.</li>
+          </ul>
+        </li>
+        <li>Restart Krita, then press <kbd>Ctrl+Alt+R</kbd> to turn the ruler on.</li>
+      </ol>
+      <p class="why">Why not Import from Web? In Krita 5.3 on macOS it fails with a certificate error for every plugin: Krita's built-in Python looks for its list of trusted certificates in a folder that only exists on the machine Krita was built on.</p>
+    </div>
+
+    <h3>Windows and Linux</h3>
     <ol class="steps">
-      <li>In Krita, choose <span class="path">Tools ▸ Scripts ▸ Import Python Plugin from File…</span> and pick the zip.</li>
-      <li>Restart Krita.</li>
-      <li>Open <span class="path">Settings ▸ Configure Krita ▸ Python Plugin Manager</span>, tick <b>Rebels Rule</b> and restart once more.</li>
+      <li>
+        In Krita, choose <span class="path">Tools ▸ Scripts ▸ Import Python Plugin from Web…</span> and paste this address:
+        <div class="address">
+          <code id="zip-url">https://github.com/chrleon/rebelsrule/releases/latest/download/rebelsrule.zip</code>
+          <button type="button" class="copy" id="copy-url">Copy</button>
+        </div>
+        Or <a href="https://github.com/chrleon/rebelsrule/releases/latest/download/rebelsrule.zip">download the zip</a> and choose <span class="path">Import Python Plugin from File…</span> instead.
+      </li>
+      <li>
+        When Krita asks <b>Enable plugins now?</b>, choose <b>Yes</b>.
+        <ul class="sub">
+          <li>If you chose <b>No</b>, open <span class="path">Settings ▸ Configure Krita ▸ Python Plugin Manager</span>, tick <b>Rebels Rule</b> and restart Krita.</li>
+        </ul>
+      </li>
+      <li>Restart Krita, then press <kbd>Ctrl+Alt+R</kbd> to turn the ruler on.</li>
     </ol>
     <p class="note">Tested with Krita 5.3 on macOS. The source is on <a href="https://github.com/chrleon/rebelsrule">GitHub</a>.</p>
+  </section>
+
+  <section aria-labelledby="uninstall">
+    <h2 id="uninstall">Uninstall</h2>
+    <ol class="steps">
+      <li>In Krita, go to <span class="path">Settings ▸ Manage Resources…</span> and click <b>Open Resource Folder</b>.</li>
+      <li>Quit Krita.</li>
+      <li>In the folder that opened, delete <span class="path">pykrita/rebelsrule</span>, <span class="path">pykrita/rebelsrule.desktop</span> and <span class="path">actions/rebelsrule.action</span>.</li>
+    </ol>
+    <p class="note">Krita's Python Plugin Manager can only turn plugins off, so removing these files is how you uninstall one.</p>
   </section>
 </main>
 
@@ -200,5 +292,26 @@
   <p class="signoff">Designed by a <a href="https://christianleon.com">human</a>, built by a machine.</p>
 </footer>
 
+<script>
+  (function () {
+    var button = document.getElementById("copy-url");
+    var code = document.getElementById("zip-url");
+    button.addEventListener("click", function () {
+      function selectIt() {
+        var range = document.createRange();
+        range.selectNodeContents(code);
+        var sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+        button.textContent = "Selected";
+      }
+      if (!navigator.clipboard) { selectIt(); return; }
+      navigator.clipboard.writeText(code.textContent.trim()).then(function () {
+        button.textContent = "Copied";
+        setTimeout(function () { button.textContent = "Copy"; }, 2000);
+      }, selectIt);
+    });
+  })();
+</script>
 </body>
 </html>
