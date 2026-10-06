@@ -14,4 +14,5 @@
 
 ## Release
 
-- [ ] Make the GitHub repo (`chrleon/kritaplugins`) public when development is done.
+- [x] Make the GitHub repo public when development is done.
+- [x] Rename the repo to `chrleon/rebelsrule`; `chrleon/kritaplugins` now only forwards the old site address.

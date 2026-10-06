@@ -18,7 +18,7 @@ normally, so colour picking, brush resizing and panning still work.
 
 ## Install
 
-1. Download `rebelsrule.zip` from the [latest release](https://github.com/chrleon/kritaplugins/releases/latest).
+1. Download `rebelsrule.zip` from the [latest release](https://github.com/chrleon/rebelsrule/releases/latest).
 2. In Krita, choose **Tools ▸ Scripts ▸ Import Python Plugin from File…** and pick the zip.
 3. Restart Krita, tick **Rebels Rule** in **Settings ▸ Configure Krita ▸ Python Plugin Manager**, and restart once more.
 
